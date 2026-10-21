@@ -1,4 +1,4 @@
-(() => {
+export function initTable(scope) {
   const section = document.querySelector('.table-section');
   if (!section) return;
   const objects = [...section.querySelectorAll('.table-object')];
@@ -31,16 +31,21 @@
     queued = false;
   }
   function requestUpdate() {
-    if (!queued) { queued = true; requestAnimationFrame(update); }
+    if (!queued) {
+      queued = true;
+      scope.frame(update);
+    }
   }
-  addEventListener('scroll', requestUpdate, { passive: true });
-  addEventListener('resize', requestUpdate);
-  reducedMotion.addEventListener('change', requestUpdate);
-  section.querySelector('.table-scroll-cue').addEventListener('click', () => {
+  scope.listen(window, 'scroll', requestUpdate, {
+    passive: true
+  });
+  scope.listen(window, 'resize', requestUpdate);
+  scope.listen(reducedMotion, 'change', requestUpdate);
+  scope.listen(section.querySelector('.table-scroll-cue'), 'click', () => {
     scrollTo({
       top: section.getBoundingClientRect().top + scrollY + .95 * (section.offsetHeight - stage.offsetHeight),
       behavior: reducedMotion.matches ? 'instant' : 'smooth'
     });
   });
   update();
-})();
+}

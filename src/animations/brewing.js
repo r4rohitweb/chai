@@ -1,4 +1,4 @@
-(() => {
+export function initBrewing(scope) {
   const section = document.querySelector('.brewing-scroll');
   if (!section) return;
   const header = document.querySelector('.site-header');
@@ -9,9 +9,11 @@
   const labels = [...section.querySelectorAll('[data-spice]')];
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = value => Math.min(1, Math.max(0, value));
-  const smooth = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
+  const smooth = value => {
+    const t = clamp(value);
+    return t * t * (3 - 2 * t);
+  };
   let queued = false;
-
   function update() {
     const bounds = section.getBoundingClientRect();
     const progress = clamp(-bounds.top / Math.max(1, section.offsetHeight - innerHeight));
@@ -27,7 +29,6 @@
     // Three rises, each followed by a brief simmer, while the final chapter is pinned.
     const boilWave = Math.sin(clamp((progress - .67) / .33) * Math.PI * 6);
     section.querySelector('.pan-liquid').style.translate = `0 ${reducedMotion.matches ? 0 : -boiling * (9 + boilWave * 5)}px`;
-
     ingredients.forEach((ingredient, index) => {
       const phase = smooth((progress - (.015 + index * .045)) / .075);
       ingredient.style.setProperty('--ingredient-opacity', clamp(phase * 2).toFixed(4));
@@ -38,7 +39,6 @@
       label.style.setProperty('--ingredient-opacity', phase.toFixed(4));
       label.style.setProperty('--ingredient-drop', `${(1 - phase) * -100}px`);
     });
-
     const second = smooth((progress - .32) / .06);
     const third = smooth((progress - .64) / .06);
     const opacities = [1 - second, second * (1 - third), third];
@@ -49,8 +49,7 @@
       chapter.setAttribute('aria-hidden', String(index !== current));
     });
     steps.forEach((step, index) => {
-      if (index === current) step.setAttribute('aria-current', 'step');
-      else step.removeAttribute('aria-current');
+      if (index === current) step.setAttribute('aria-current', 'step');else step.removeAttribute('aria-current');
     });
     header.classList.toggle('on-dark', darkSections.some(element => {
       const rect = element.getBoundingClientRect();
@@ -60,15 +59,23 @@
     queued = false;
   }
   function requestUpdate() {
-    if (!queued) { queued = true; requestAnimationFrame(update); }
+    if (!queued) {
+      queued = true;
+      scope.frame(update);
+    }
   }
-  addEventListener('scroll', requestUpdate, { passive: true });
-  addEventListener('resize', requestUpdate);
-  reducedMotion.addEventListener('change', requestUpdate);
+  scope.listen(window, 'scroll', requestUpdate, {
+    passive: true
+  });
+  scope.listen(window, 'resize', requestUpdate);
+  scope.listen(reducedMotion, 'change', requestUpdate);
   const stagePositions = [.16, .47, .86];
-  steps.forEach((step, index) => step.addEventListener('click', () => {
+  steps.forEach((step, index) => scope.listen(step, 'click', () => {
     const top = section.getBoundingClientRect().top + scrollY;
-    scrollTo({ top: top + stagePositions[index] * (section.offsetHeight - innerHeight), behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+    scrollTo({
+      top: top + stagePositions[index] * (section.offsetHeight - innerHeight),
+      behavior: reducedMotion.matches ? 'instant' : 'smooth'
+    });
   }));
   update();
-})();
+}

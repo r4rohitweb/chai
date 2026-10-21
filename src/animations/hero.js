@@ -1,4 +1,4 @@
-(() => {
+export function initHero(scope) {
   const root = document.documentElement;
   const section = document.querySelector('.hero-scroll');
   const teaFill = document.querySelector('.tea-fill');
@@ -11,7 +11,6 @@
     direction: index % 2 === 0 ? -1 : 1
   }));
   let queued = false;
-
   function updateScroll() {
     const distance = Math.max(1, section.offsetHeight - innerHeight);
     const progress = Math.min(1, Math.max(0, -section.getBoundingClientRect().top / distance));
@@ -20,7 +19,11 @@
     root.style.setProperty('--facts-opacity', Math.min(1, Math.max(0, (progress - .25) / .4)).toFixed(4));
     // Each badge follows its own scroll interval, including a small spring overshoot.
     // Scrubbing backwards reverses the entrance and resets it for the next scroll.
-    badges.forEach(({ element, start, direction }) => {
+    badges.forEach(({
+      element,
+      start,
+      direction
+    }) => {
       const phase = Math.min(1, Math.max(0, (progress - start) / .30));
       const remaining = phase - 1;
       const spring = 1 + 2.70158 * remaining ** 3 + 1.70158 * remaining ** 2;
@@ -43,42 +46,51 @@
     queued = false;
   }
   function requestUpdate() {
-    if (!queued) { queued = true; requestAnimationFrame(updateScroll); }
+    if (!queued) {
+      queued = true;
+      scope.frame(updateScroll);
+    }
   }
-  addEventListener('scroll', requestUpdate, { passive: true });
-  addEventListener('resize', requestUpdate);
-  reducedMotion.addEventListener('change', requestUpdate);
-  updateScroll();
-
-  document.querySelector('.scroll-cue').addEventListener('click', () => {
-    scrollTo({ top: section.offsetHeight - innerHeight, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+  scope.listen(window, 'scroll', requestUpdate, {
+    passive: true
   });
-  document.querySelector('.replay').addEventListener('click', () => {
-    scrollTo({ top: 0, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+  scope.listen(window, 'resize', requestUpdate);
+  scope.listen(reducedMotion, 'change', requestUpdate);
+  updateScroll();
+  scope.listen(document.querySelector('.scroll-cue'), 'click', () => {
+    scrollTo({
+      top: section.offsetHeight - innerHeight,
+      behavior: reducedMotion.matches ? 'instant' : 'smooth'
+    });
+  });
+  scope.listen(document.querySelector('.replay'), 'click', () => {
+    scrollTo({
+      top: 0,
+      behavior: reducedMotion.matches ? 'instant' : 'smooth'
+    });
   });
   if (matchMedia('(pointer: fine)').matches) {
-    document.querySelector('.hero').addEventListener('pointermove', event => {
+    scope.listen(document.querySelector('.hero'), 'pointermove', event => {
       if (reducedMotion.matches) return;
       root.style.setProperty('--pointer-x', `${(event.clientX / innerWidth - .5) * 5}px`);
       root.style.setProperty('--pointer-y', `${(event.clientY / innerHeight - .5) * 4}px`);
     });
-    document.querySelector('.hero').addEventListener('pointerleave', () => {
+    scope.listen(document.querySelector('.hero'), 'pointerleave', () => {
       root.style.setProperty('--pointer-x', '0px');
       root.style.setProperty('--pointer-y', '0px');
     });
   }
-
   document.querySelectorAll('[data-dialog]').forEach(button => {
-    button.addEventListener('click', () => document.getElementById(button.dataset.dialog).showModal());
+    scope.listen(button, 'click', () => document.getElementById(button.dataset.dialog).showModal());
   });
   document.querySelectorAll('dialog').forEach(dialog => {
     dialog.querySelectorAll('.close-dialog, .close-menu').forEach(button => {
-      button.addEventListener('click', () => dialog.close());
+      scope.listen(button, 'click', () => dialog.close());
     });
-    dialog.addEventListener('click', event => {
+    scope.listen(dialog, 'click', event => {
       if (event.target !== dialog) return;
       const bounds = dialog.getBoundingClientRect();
       if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
     });
   });
-})();
+}

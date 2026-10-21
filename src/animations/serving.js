@@ -1,4 +1,4 @@
-(() => {
+export function initServing(scope) {
   const section = document.querySelector('.serving-scroll');
   if (!section) return;
   const glass = section.querySelector('.serving-glass');
@@ -16,10 +16,12 @@
   const note = section.querySelector('.serving-meter-note');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = value => Math.min(1, Math.max(0, value));
-  const smooth = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
+  const smooth = value => {
+    const t = clamp(value);
+    return t * t * (3 - 2 * t);
+  };
   const mix = (a, b, t) => a + (b - a) * t;
   let queued = false;
-
   function update() {
     const bounds = section.getBoundingClientRect();
     const progress = clamp(-bounds.top / Math.max(1, section.offsetHeight - innerHeight));
@@ -70,9 +72,7 @@
     soak.setAttribute('opacity', smooth((progress - .69) / .15));
     section.querySelector('.serve-waterline').setAttribute('height', liquidY + 2);
     const snap = smooth((progress - .90) / .08);
-    section.querySelector('.serve-biscuit-cut').setAttribute('d', snap > 0
-      ? 'M-10-10H160V155L145 153 128 158 111 152 97 157 82 151 66 159 53 153 38 158 24 151 14 156-10 155Z'
-      : 'M-10-10H160V205H-10Z');
+    section.querySelector('.serve-biscuit-cut').setAttribute('d', snap > 0 ? 'M-10-10H160V155L145 153 128 158 111 152 97 157 82 151 66 159 53 153 38 158 24 151 14 156-10 155Z' : 'M-10-10H160V205H-10Z');
     const piece = section.querySelector('.broken-biscuit-piece');
     piece.setAttribute('opacity', snap > 0 ? 1 - snap * .9 : 0);
     piece.setAttribute('transform', `translate(0 ${snap * 120}) rotate(${snap * 18} 75 165)`);
@@ -86,8 +86,7 @@
       chapter.setAttribute('aria-hidden', String(index !== Number(dunk)));
     });
     steps.forEach((step, index) => {
-      if (index === Number(dunk)) step.setAttribute('aria-current', 'step');
-      else step.removeAttribute('aria-current');
+      if (index === Number(dunk)) step.setAttribute('aria-current', 'step');else step.removeAttribute('aria-current');
     });
     const seconds = clamp((progress - .68) / .20) * 4.1;
     value.textContent = dunk ? seconds.toFixed(1) : Math.round(amount * 90);
@@ -100,15 +99,23 @@
     queued = false;
   }
   function requestUpdate() {
-    if (!queued) { queued = true; requestAnimationFrame(update); }
+    if (!queued) {
+      queued = true;
+      scope.frame(update);
+    }
   }
   function goTo(progress) {
-    scrollTo({ top: section.getBoundingClientRect().top + scrollY + progress * (section.offsetHeight - innerHeight), behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+    scrollTo({
+      top: section.getBoundingClientRect().top + scrollY + progress * (section.offsetHeight - innerHeight),
+      behavior: reducedMotion.matches ? 'instant' : 'smooth'
+    });
   }
-  steps.forEach((step, index) => step.addEventListener('click', () => goTo(index === 0 ? .25 : .78)));
-  section.querySelector('.serving-replay').addEventListener('click', () => goTo(0));
-  addEventListener('scroll', requestUpdate, { passive: true });
-  addEventListener('resize', requestUpdate);
-  reducedMotion.addEventListener('change', requestUpdate);
+  steps.forEach((step, index) => scope.listen(step, 'click', () => goTo(index === 0 ? .25 : .78)));
+  scope.listen(section.querySelector('.serving-replay'), 'click', () => goTo(0));
+  scope.listen(window, 'scroll', requestUpdate, {
+    passive: true
+  });
+  scope.listen(window, 'resize', requestUpdate);
+  scope.listen(reducedMotion, 'change', requestUpdate);
   update();
-})();
+}

@@ -1,28 +1,9 @@
-(() => {
+export function initHouse(scope) {
   const section = document.querySelector('.house-section');
   if (!section) return;
   const intro = section.querySelector('.house-intro-scroll');
   const stage = section.querySelector('.house-intro');
-  const words = [];
-  section.querySelectorAll('.house-line').forEach(line => {
-    const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
-    const nodes = [];
-    while (walker.nextNode()) nodes.push(walker.currentNode);
-    nodes.forEach(node => {
-      const fragment = document.createDocumentFragment();
-      node.textContent.split(/(\s+)/).forEach(text => {
-        if (!text.trim()) fragment.append(document.createTextNode(text));
-        else {
-          const span = document.createElement('span');
-          span.className = 'house-word';
-          span.textContent = text;
-          fragment.append(span);
-          words.push(span);
-        }
-      });
-      node.replaceWith(fragment);
-    });
-  });
+  const words = [...section.querySelectorAll('.house-word')];
   const details = [...section.querySelectorAll('.house-reveal')];
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = n => Math.max(0, Math.min(1, n));
@@ -47,9 +28,16 @@
     section.classList.toggle('is-house-visible', sectionBounds.top < innerHeight && sectionBounds.bottom > 0);
     queued = false;
   }
-  function requestUpdate() { if (!queued) { queued = true; requestAnimationFrame(update); } }
-  addEventListener('scroll', requestUpdate, { passive: true });
-  addEventListener('resize', requestUpdate);
-  reducedMotion.addEventListener('change', requestUpdate);
+  function requestUpdate() {
+    if (!queued) {
+      queued = true;
+      scope.frame(update);
+    }
+  }
+  scope.listen(window, 'scroll', requestUpdate, {
+    passive: true
+  });
+  scope.listen(window, 'resize', requestUpdate);
+  scope.listen(reducedMotion, 'change', requestUpdate);
   update();
-})();
+}
